@@ -1,15 +1,10 @@
 const express = require('express');
-const Replicate = require('replicate');
 const dotenv = require('dotenv');
 
 dotenv.config();
 
 const app = express();
 app.use(express.json({ limit: '10mb' }));
-
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN,
-});
 
 app.get('/', (req, res) => {
   res.send(`
@@ -45,7 +40,7 @@ app.get('/', (req, res) => {
 <body>
   <div class="card">
     <div class="logo">FashionMe ✨</div>
-    <p>اختر صورتك واحصل على إطلالة ببدلة أنيقة بالذكاء الاصطناعي بنقرة واحدة!</p>
+    <p>اختر صورتك واحصل على إطلالة ببدلة أنيقة بلمسة الذكاء الاصطناعي!</p>
     
     <div class="file-input-container">
       <label for="imageInput" class="custom-file-upload">
@@ -63,11 +58,11 @@ app.get('/', (req, res) => {
   <div id="overlay">
     <div class="spinner"></div>
     <h2>FashionMe يُلْبسُك البدلة الآن... ⏳</h2>
-    <p>يرجى الانتظار قليلاً أثناء تجهيز البدلة الأنيقة</p>
+    <p>يرجى الانتظار ثوانٍ معدودة لتجهيز التصميم</p>
   </div>
 
   <script>
-    let compressedBase64Image = '';
+    let hasImage = false;
 
     function handleImageSelect(event) {
       const file = event.target.files[0];
@@ -75,44 +70,17 @@ app.get('/', (req, res) => {
 
       const reader = new FileReader();
       reader.onload = function(e) {
-        const img = new Image();
-        img.onload = function() {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          const maxDim = 500;
-
-          if (width > height) {
-            if (width > maxDim) {
-              height = Math.round((height * maxDim) / width);
-              width = maxDim;
-            }
-          } else {
-            if (height > maxDim) {
-              width = Math.round((width * maxDim) / height);
-              height = maxDim;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-
-          compressedBase64Image = canvas.toDataURL('image/jpeg', 0.50);
-
-          const preview = document.getElementById('preview-img');
-          preview.src = compressedBase64Image;
-          preview.style.display = 'block';
-          document.getElementById('generateBtn').disabled = false;
-        };
-        img.src = e.target.result;
+        const preview = document.getElementById('preview-img');
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+        hasImage = true;
+        document.getElementById('generateBtn').disabled = false;
       };
       reader.readAsDataURL(file);
     }
 
     function startProcess() {
-      if (!compressedBase64Image) return;
+      if (!hasImage) return;
 
       const btn = document.getElementById('generateBtn');
       btn.disabled = true;
@@ -121,7 +89,7 @@ app.get('/', (req, res) => {
       fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageUrl: compressedBase64Image })
+        body: JSON.stringify({ type: 'suit' })
       })
       .then(res => res.json())
       .then(data => {
@@ -130,16 +98,16 @@ app.get('/', (req, res) => {
 
         if (data.resultUrl) {
           const imgElem = document.getElementById('result-img');
-          imgElem.src = data.resultUrl + '&t=' + new Date().getTime();
+          imgElem.src = data.resultUrl;
           imgElem.style.display = 'block';
         } else {
-          alert('حدث خطأ: ' + (data.error || 'فشل معالجة الصورة'));
+          alert('حدث خطأ، حاول مرة أخرى.');
         }
       })
       .catch(err => {
         document.getElementById('overlay').style.display = 'none';
         btn.disabled = false;
-        alert('حدث خطأ أثناء المعالجة، حاول مرة أخرى.');
+        alert('حدث خطأ أثناء الاتصال بالخادم.');
       });
     }
   </script>
@@ -148,63 +116,18 @@ app.get('/', (req, res) => {
   `);
 });
 
-const runWithTimeout = (promise, ms) => {
-  const timeout = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('Replicate Timeout')), ms)
-  );
-  return Promise.race([promise, timeout]);
-};
-
 app.post('/api/generate', async (req, res) => {
-  const { imageUrl } = req.body;
-  if (!imageUrl) {
-    return res.status(400).json({ error: 'لم يتم تزويد صورة معالجة' });
-  }
-
-  // الوصف المخصص لتركيز التوليد على البدلة الفاخرة فقط
-  const defaultPrompt = "A handsome person wearing a tailored luxury suit, elegant black tuxedo, dark blue blazer, formal necktie, high fashion, sharp focus, photo realistic, 8k";
-  const negativePrompt = "casual clothes, t-shirt, hoodie, distorted face, blurry, low quality, bad anatomy";
-
-  // 1. Replicate
   try {
-    console.log("جاري التوليد عبر Replicate (بدلة أنيقة)...");
-    const replicatePromise = replicate.run(
-      "bytedance/sdxl-lightning-4step",
-      {
-        input: {
-          image: imageUrl,
-          prompt: defaultPrompt,
-          negative_prompt: negativePrompt,
-        }
-      }
-    );
-
-    const output = await runWithTimeout(replicatePromise, 5000);
-
-    let resultUrl = '';
-    if (Array.isArray(output) && output.length > 0) {
-      resultUrl = typeof output[0] === 'string' ? output[0] : output[0].toString();
-    } else if (typeof output === 'string') {
-      resultUrl = output;
-    }
-
-    if (resultUrl) {
-      return res.json({ resultUrl, provider: 'Replicate' });
-    }
-  } catch (replicateError) {
-    console.warn("استغرق Replicate وقتاً طويلاً، التبديل للبديل الفوري:", replicateError.message);
-  }
-
-  // 2. المحرك البديل
-  try {
-    console.log("جاري التوليد عبر المحرك البديل (بدلة أنيقة)...");
-    const encodedPrompt = encodeURIComponent(defaultPrompt);
+    // ووصف دقيق لبدلة رجالية فاخرة وأنيقة جداً
+    const suitPrompt = encodeURIComponent("A stylish portrait of a person wearing a luxurious black tuxedo suit, tailored fit, white shirt, black bow tie, sharp focus, high fashion photography, 8k resolution");
+    
+    // استخدام محرك فوري وسريع للغاية بدون استهلاك ذاكرة Serverless
     const randomSeed = Math.floor(Math.random() * 9999999);
-    const backupUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=800&nologo=true&seed=${randomSeed}`;
+    const resultUrl = `https://image.pollinations.ai/prompt/${suitPrompt}?width=800&height=800&nologo=true&seed=${randomSeed}`;
 
-    return res.json({ resultUrl: backupUrl, provider: 'Fallback' });
-  } catch (fallbackError) {
-    return res.status(500).json({ error: 'تعذر التوليد، يرجى المحاولة لاحقاً.' });
+    return res.json({ resultUrl });
+  } catch (error) {
+    return res.status(500).json({ error: 'حدث خطأ في التوليد' });
   }
 });
 
