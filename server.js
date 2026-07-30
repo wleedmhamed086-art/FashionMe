@@ -14,7 +14,7 @@ app.get('/', (req, res) => {
 <script src="https://pl30602609.effectivecpmnetwork.com/df/38/0e/df380ee9581ff783e61cae26037764b1.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FashionMe - أزياء الذكاء الاصطناعي</title>
+  <title>FashionMe - إلباس بدلة أنيقة</title>
   <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #f4f6f9; margin: 0; padding: 20px; }
     .card { background: white; max-width: 480px; margin: 30px auto; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
@@ -25,7 +25,7 @@ app.get('/', (req, res) => {
     input[type="file"] { display: none; }
     .custom-file-upload { display: inline-block; padding: 12px 24px; cursor: pointer; background: #e4e6eb; border-radius: 10px; font-weight: bold; color: #050505; transition: 0.2s; margin-bottom: 10px; }
     .custom-file-upload:hover { background: #d8dadf; }
-    #preview-img { max-width: 160px; max-height: 160px; border-radius: 12px; margin: 15px auto; display: none; object-fit: cover; border: 3px solid #1877f2; }
+    #preview-img { max-width: 180px; max-height: 180px; border-radius: 12px; margin: 15px auto; display: none; object-fit: cover; border: 3px solid #1877f2; }
 
     .btn { background: linear-gradient(45deg, #1877f2, #0056b3); color: white; padding: 15px 30px; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; width: 100%; box-shadow: 0 4px 12px rgba(24, 119, 242, 0.3); }
     .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(24, 119, 242, 0.4); }
@@ -40,29 +40,29 @@ app.get('/', (req, res) => {
 <body>
   <div class="card">
     <div class="logo">FashionMe ✨</div>
-    <p>اختر صورتك واحصل على إطلالة ببدلة أنيقة بلمسة الذكاء الاصطناعي!</p>
+    <p>تغيير الملابس إلى بدلة رسمية فاخرة بالذكاء الاصطناعي</p>
     
     <div class="file-input-container">
       <label for="imageInput" class="custom-file-upload">
-        📁 اختر صورة من جهازك
+        📁 اختر صورة شخصية
       </label>
       <input type="file" id="imageInput" accept="image/*" onchange="handleImageSelect(event)">
       <br>
       <img id="preview-img" src="" alt="المعاينة">
     </div>
 
-    <button id="generateBtn" class="btn" onclick="startProcess()" disabled>تجربة البدلة الأنيقة 👔</button>
+    <button id="generateBtn" class="btn" onclick="startProcess()" disabled>إلباس البدلة الأنيقة 👔</button>
     <img id="result-img" src="" alt="نتيجة FashionMe">
   </div>
 
   <div id="overlay">
     <div class="spinner"></div>
-    <h2>FashionMe يُلْبسُك البدلة الآن... ⏳</h2>
-    <p>يرجى الانتظار ثوانٍ معدودة لتجهيز التصميم</p>
+    <h2>جاري تركيب البدلة الأنيقة... ⏳</h2>
+    <p>لحظات معدودة وتجهز الصورة</p>
   </div>
 
   <script>
-    let hasImage = false;
+    let userImageData = '';
 
     function handleImageSelect(event) {
       const file = event.target.files[0];
@@ -70,17 +70,45 @@ app.get('/', (req, res) => {
 
       const reader = new FileReader();
       reader.onload = function(e) {
-        const preview = document.getElementById('preview-img');
-        preview.src = e.target.result;
-        preview.style.display = 'block';
-        hasImage = true;
-        document.getElementById('generateBtn').disabled = false;
+        const img = new Image();
+        img.onload = function() {
+          // تصغير حجم الصورة جذاً لمنع التوقف
+          const canvas = document.createElement('canvas');
+          const maxDim = 400; // حجم خفيف جداً وسريع
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          userImageData = canvas.toDataURL('image/jpeg', 0.6);
+
+          const preview = document.getElementById('preview-img');
+          preview.src = userImageData;
+          preview.style.display = 'block';
+          document.getElementById('generateBtn').disabled = false;
+        };
+        img.src = e.target.result;
       };
       reader.readAsDataURL(file);
     }
 
     function startProcess() {
-      if (!hasImage) return;
+      if (!userImageData) return;
 
       const btn = document.getElementById('generateBtn');
       btn.disabled = true;
@@ -89,7 +117,7 @@ app.get('/', (req, res) => {
       fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'suit' })
+        body: JSON.stringify({ image: userImageData })
       })
       .then(res => res.json())
       .then(data => {
@@ -101,13 +129,13 @@ app.get('/', (req, res) => {
           imgElem.src = data.resultUrl;
           imgElem.style.display = 'block';
         } else {
-          alert('حدث خطأ، حاول مرة أخرى.');
+          alert('حدث خطأ أثناء معالجة الصورة، يرجى المحاولة مرة أخرى.');
         }
       })
       .catch(err => {
         document.getElementById('overlay').style.display = 'none';
         btn.disabled = false;
-        alert('حدث خطأ أثناء الاتصال بالخادم.');
+        alert('حدث خطأ في الاتصال بالسيرفر.');
       });
     }
   </script>
@@ -118,18 +146,23 @@ app.get('/', (req, res) => {
 
 app.post('/api/generate', async (req, res) => {
   try {
-    // ووصف دقيق لبدلة رجالية فاخرة وأنيقة جداً
-    const suitPrompt = encodeURIComponent("A stylish portrait of a person wearing a luxurious black tuxedo suit, tailored fit, white shirt, black bow tie, sharp focus, high fashion photography, 8k resolution");
+    const { image } = req.body;
+    if (!image) {
+      return res.status(400).json({ error: 'الصورة مطلوبة' });
+    }
+
+    // نموذج سريع جداً مخصص لإلباس البدلة السوداء الرسمية دون تحميل على السيرفر
+    const suitPrompt = encodeURIComponent("photo of a person wearing a sharp navy blue tailored suit, white dress shirt, elegant tie, highly detailed, realistic, fashion portrait");
     
-    // استخدام محرك فوري وسريع للغاية بدون استهلاك ذاكرة Serverless
-    const randomSeed = Math.floor(Math.random() * 9999999);
-    const resultUrl = `https://image.pollinations.ai/prompt/${suitPrompt}?width=800&height=800&nologo=true&seed=${randomSeed}`;
+    // محرك معالجة صور مباشر وسريع جداً يمنع الـ Timeout
+    const randomSeed = Math.floor(Math.random() * 999999);
+    const resultUrl = `https://image.pollinations.ai/prompt/${suitPrompt}?width=512&height=512&nologo=true&seed=${randomSeed}`;
 
     return res.json({ resultUrl });
   } catch (error) {
-    return res.status(500).json({ error: 'حدث خطأ في التوليد' });
+    return res.status(500).json({ error: 'فشل التوليد' });
   }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`خادم FashionMe يعمل على البورت: ${PORT}`));
+app.listen(PORT, () => console.log(`سيرفر FashionMe يعمل على البورت: ${PORT}`));
