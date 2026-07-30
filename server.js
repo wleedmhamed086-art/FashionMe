@@ -1,171 +1,235 @@
 const express = require('express');
-const dotenv = require('dotenv');
-
-dotenv.config();
-
 const app = express();
-app.use(express.json({ limit: '10mb' }));
 
 app.get('/', (req, res) => {
   res.send(`
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<script src="https://pl30602609.effectivecpmnetwork.com/df/38/0e/df380ee9581ff783e61cae26037764b1.js"></script>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FashionMe - إلباس بدلة فاخرة مع حفظ الوجه</title>
-  <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #f4f6f9; margin: 0; padding: 20px; }
-    .card { background: white; max-width: 480px; margin: 30px auto; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
-    .logo { font-size: 32px; font-weight: 800; background: linear-gradient(45deg, #1877f2, #833ab4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 5px; }
-    p { color: #606770; font-size: 15px; margin-bottom: 25px; }
-    
-    .file-input-container { margin-bottom: 20px; }
-    input[type="file"] { display: none; }
-    .custom-file-upload { display: inline-block; padding: 12px 24px; cursor: pointer; background: #e4e6eb; border-radius: 10px; font-weight: bold; color: #050505; transition: 0.2s; margin-bottom: 10px; }
-    .custom-file-upload:hover { background: #d8dadf; }
-    #preview-img { max-width: 180px; max-height: 180px; border-radius: 12px; margin: 15px auto; display: none; object-fit: cover; border: 3px solid #1877f2; }
+  <!-- كود شبكة الإعلانات الخاص بك -->
+  <script src="https://pl30602609.effectivecpmnetwork.com/df/38/0e/df380ee9581ff783e61cae26037764b1.js"></script>
 
-    .btn { background: linear-gradient(45deg, #1877f2, #0056b3); color: white; padding: 15px 30px; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; width: 100%; box-shadow: 0 4px 12px rgba(24, 119, 242, 0.3); }
-    .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(24, 119, 242, 0.4); }
-    .btn:disabled { background: #ccc; cursor: not-allowed; box-shadow: none; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Stack Mastery - برج التحدي الإدماني</title>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Tajawal', sans-serif; user-select: none; }
+    body { background: #0f172a; color: white; text-align: center; overflow: hidden; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+
+    #game-container { position: relative; width: 100%; max-width: 420px; height: 100vh; background: linear-gradient(180deg, #0f172a 0%, #1e1b4b 100%); overflow: hidden; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
     
-    #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.88); color: white; justify-content: center; align-items: center; flex-direction: column; z-index: 9999; }
-    .spinner { border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid #1877f2; border-radius: 50%; width: 50px; height: 50px; animation: spin 0.8s linear infinite; margin-bottom: 20px; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    #result-canvas { max-width: 100%; border-radius: 16px; margin-top: 20px; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
+    canvas { display: block; width: 100%; height: 100%; }
+
+    .ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 30px 20px; }
+    
+    .score-board { font-size: 48px; font-weight: 900; text-shadow: 0 4px 12px rgba(0,0,0,0.4); background: linear-gradient(135deg, #a855f7, #6366f1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .high-score { font-size: 16px; color: #94a3b8; font-weight: 700; margin-top: -5px; }
+
+    #start-screen, #game-over-screen { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(8px); display: flex; flex-direction: column; justify-content: center; align-items: center; pointer-events: auto; padding: 20px; z-index: 10; }
+    #game-over-screen { display: none; }
+
+    h1 { font-size: 38px; font-weight: 900; background: linear-gradient(135deg, #c084fc, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px; }
+    p { color: #94a3b8; font-size: 15px; margin-bottom: 25px; }
+
+    .btn { background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); color: white; border: none; padding: 16px 40px; border-radius: 20px; font-size: 20px; font-weight: 800; cursor: pointer; box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4); transition: transform 0.2s; }
+    .btn:active { transform: scale(0.95); }
   </style>
 </head>
 <body>
-  <div class="card">
-    <div class="logo">FashionMe ✨</div>
-    <p>تغيير الملابس لبدلة أنيقة مع الحفاظ التام على ملامح وجهك الاصلي</p>
-    
-    <div class="file-input-container">
-      <label for="imageInput" class="custom-file-upload">
-        📁 اختر صورة ملامحها واضحة
-      </label>
-      <input type="file" id="imageInput" accept="image/*" onchange="handleImageSelect(event)">
-      <br>
-      <img id="preview-img" src="" alt="المعاينة">
+
+  <div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+
+    <div class="ui-layer">
+      <div>
+        <div class="score-board" id="scoreText">0</div>
+        <div class="high-score" id="highScoreText">أفضل نتيجة: 0</div>
+      </div>
     </div>
 
-    <button id="generateBtn" class="btn" onclick="startProcess()" disabled>تركيب البدلة مع حفظ الوجه 👔</button>
-    <canvas id="result-canvas"></canvas>
-  </div>
+    <div id="start-screen">
+      <h1>Stack Tower 🏙️</h1>
+      <p>اضغط في الوقت المناسب لبناء أعلى برج محتمل!</p>
+      <button class="btn" onclick="startGame()">ابدأ اللعب 🚀</button>
+    </div>
 
-  <div id="overlay">
-    <div class="spinner"></div>
-    <h2>جاري الحفاظ على ملامح الوجه وتركيب البدلة... ⏳</h2>
-    <p>يرجى الانتظار بضع ثوانٍ</p>
+    <div id="game-over-screen">
+      <h1 style="color: #ef4444;">خسرت المحاولة! 💥</h1>
+      <p id="finalScoreText">النتيجة: 0</p>
+      <button class="btn" onclick="startGame()">إعادة المحاولة 🔄</button>
+    </div>
   </div>
 
   <script>
-    let userImgElement = new Image();
-    let isImageLoaded = false;
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    let score = 0;
+    let highScore = localStorage.getItem('stack_highscore') || 0;
+    document.getElementById('highScoreText').innerText = 'أفضل نتيجة: ' + highScore;
 
-    function handleImageSelect(event) {
-      const file = event.target.files[0];
-      if (!file) return;
+    function resize() {
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = canvas.parentElement.clientHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
 
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        userImgElement.onload = function() {
-          const preview = document.getElementById('preview-img');
-          preview.src = e.target.result;
-          preview.style.display = 'block';
-          isImageLoaded = true;
-          document.getElementById('generateBtn').disabled = false;
-        };
-        userImgElement.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
+    let blocks = [];
+    let currentBlock = {};
+    let direction = 1;
+    let speed = 3;
+    let isGameOver = false;
+    let isPlaying = false;
+    let cameraY = 0;
+    let targetCameraY = 0;
+
+    const blockHeight = 35;
+
+    function getHue(index) {
+      return (index * 15) % 360;
     }
 
-    async function startProcess() {
-      if (!isImageLoaded) return;
+    function startGame() {
+      document.getElementById('start-screen').style.display = 'none';
+      document.getElementById('game-over-screen').style.display = 'none';
+      
+      score = 0;
+      speed = 3.5;
+      direction = 1;
+      isGameOver = false;
+      isPlaying = true;
+      cameraY = 0;
+      targetCameraY = 0;
+      
+      document.getElementById('scoreText').innerText = score;
 
-      const btn = document.getElementById('generateBtn');
-      btn.disabled = true;
-      document.getElementById('overlay').style.display = 'flex';
+      const baseWidth = canvas.width * 0.55;
+      blocks = [{
+        x: (canvas.width - baseWidth) / 2,
+        y: canvas.height - 120,
+        width: baseWidth,
+        hue: 200
+      }];
 
-      try {
-        // 1. طلب صورة بدلة فاخرة عالية الدقة من السيرفر
-        const response = await fetch('/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'get_suit' })
-        });
-        const data = await response.json();
+      spawnBlock();
+      requestAnimationFrame(gameLoop);
+    }
 
-        if (data.suitUrl) {
-          const suitImg = new Image();
-          suitImg.crossOrigin = "Anonymous";
-          suitImg.onload = function() {
-            // 2. دمج ملامح الوجه الأصلي فوق بدلة الذكاء الاصطناعي
-            const canvas = document.getElementById('result-canvas');
-            const ctx = canvas.getContext('2d');
+    function spawnBlock() {
+      const prev = blocks[blocks.length - 1];
+      currentBlock = {
+        x: 0,
+        y: prev.y - blockHeight,
+        width: prev.width,
+        hue: getHue(blocks.length)
+      };
+    }
 
-            canvas.width = suitImg.width;
-            canvas.height = suitImg.height;
+    function placeBlock() {
+      if (!isPlaying || isGameOver) return;
 
-            // رسم خردة البدلة
-            ctx.drawImage(suitImg, 0, 0);
+      const prev = blocks[blocks.length - 1];
+      const diff = currentBlock.x - prev.x;
 
-            // دمج الوجه الأصلي بالتركيز على الـ Head Area لحفظ الملامح 100%
-            const faceWidth = canvas.width * 0.42;
-            const faceHeight = canvas.height * 0.42;
-            const faceX = (canvas.width - faceWidth) / 2;
-            const faceY = canvas.height * 0.08;
+      if (Math.abs(diff) >= currentBlock.width) {
+        gameOver();
+        return;
+      }
 
-            ctx.save();
-            ctx.beginPath();
-            ctx.ellipse(
-              faceX + faceWidth / 2, 
-              faceY + faceHeight / 2, 
-              faceWidth / 2, 
-              faceHeight / 2, 
-              0, 0, 2 * Math.PI
-            );
-            ctx.clip();
-            
-            // رسم الوجه الأصلي
-            ctx.drawImage(userImgElement, faceX, faceY, faceWidth, faceHeight);
-            ctx.restore();
-
-            document.getElementById('overlay').style.display = 'none';
-            canvas.style.display = 'block';
-            btn.disabled = false;
-          };
-          suitImg.src = data.suitUrl;
+      if (Math.abs(diff) < 5) {
+        currentBlock.x = prev.x; // Perfect placement
+      } else {
+        if (diff > 0) {
+          currentBlock.width -= diff;
         } else {
-          throw new Error('فشل التوليد');
+          currentBlock.width += diff;
+          currentBlock.x = prev.x;
         }
-      } catch (err) {
-        document.getElementById('overlay').style.display = 'none';
-        btn.disabled = false;
-        alert('حدث خطأ في المعالجة، حاول مرة أخرى.');
+      }
+
+      blocks.push({ ...currentBlock });
+      score++;
+      document.getElementById('scoreText').innerText = score;
+
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('stack_highscore', highScore);
+        document.getElementById('highScoreText').innerText = 'أفضل نتيجة: ' + highScore;
+      }
+
+      speed += 0.15;
+      direction *= -1;
+
+      if (blocks.length > 5) {
+        targetCameraY += blockHeight;
+      }
+
+      spawnBlock();
+    }
+
+    function gameOver() {
+      isGameOver = true;
+      isPlaying = false;
+      document.getElementById('finalScoreText').innerText = 'النتيجة الفعالية: ' + score;
+      document.getElementById('game-over-screen').style.display = 'flex';
+    }
+
+    function gameLoop() {
+      if (!isPlaying && !isGameOver) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      cameraY += (targetCameraY - cameraY) * 0.1;
+
+      ctx.save();
+      ctx.translate(0, cameraY);
+
+      // رسم الكتل المستقرة
+      blocks.forEach(b => {
+        ctx.fillStyle = \`hsl(\${b.hue}, 80%, 60%)\`;
+        ctx.shadowColor = \`hsl(\${b.hue}, 80%, 40%)\`;
+        ctx.shadowBlur = 10;
+        ctx.fillRect(b.x, b.y, b.width, blockHeight - 2);
+      });
+
+      // تحريك الكتلة الحالية
+      if (isPlaying) {
+        currentBlock.x += speed * direction;
+        if (currentBlock.x + currentBlock.width > canvas.width || currentBlock.x < 0) {
+          direction *= -1;
+        }
+
+        ctx.fillStyle = \`hsl(\${currentBlock.hue}, 85%, 65%)\`;
+        ctx.shadowColor = \`hsl(\${currentBlock.hue}, 85%, 45%)\`;
+        ctx.shadowBlur = 15;
+        ctx.fillRect(currentBlock.x, currentBlock.y, currentBlock.width, blockHeight - 2);
+      }
+
+      ctx.restore();
+
+      if (isPlaying) {
+        requestAnimationFrame(gameLoop);
       }
     }
+
+    window.addEventListener('pointerdown', (e) => {
+      if (e.target.tagName !== 'BUTTON') {
+        placeBlock();
+      }
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        placeBlock();
+      }
+    });
   </script>
 </body>
 </html>
   `);
 });
 
-app.post('/api/generate', async (req, res) => {
-  try {
-    // توليد خلفية بدلة فاخرة ملائمة متناسقة للوجه
-    const suitPrompt = encodeURIComponent("A luxury elegant royal navy blue tuxedo suit with white shirt and black tie, body torso and shoulders, isolated clean studio background, high fashion photography, 8k");
-    const seed = Math.floor(Math.random() * 999999);
-    const suitUrl = `https://image.pollinations.ai/prompt/${suitPrompt}?width=600&height=750&nologo=true&seed=${seed}`;
-
-    return res.json({ suitUrl });
-  } catch (error) {
-    return res.status(500).json({ error: 'خطأ في السيرفر' });
-  }
-});
-
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`خادم FashionMe يعمل على البورت: ${PORT}`));
+app.listen(PORT, () => console.log(`لعبة Stack Tower تعمل على البورت: ${PORT}`));
