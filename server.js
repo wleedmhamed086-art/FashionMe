@@ -11,7 +11,7 @@ const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
 });
 
-const FACEBOOK_APP_ID = process.env.FACEBOOK_APP_ID || "2428977114262018";
+const FACEBOOK_APP_ID = process.env.FACEBOOK_APP_ID || "1544889360299503";
 
 app.get('/', (req, res) => {
   res.send(`
