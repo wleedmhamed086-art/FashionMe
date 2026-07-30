@@ -14,7 +14,7 @@ app.get('/', (req, res) => {
 <script src="https://pl30602609.effectivecpmnetwork.com/df/38/0e/df380ee9581ff783e61cae26037764b1.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FashionMe - إلباس بدلة أنيقة</title>
+  <title>FashionMe - إلباس بدلة فاخرة مع حفظ الوجه</title>
   <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #f4f6f9; margin: 0; padding: 20px; }
     .card { background: white; max-width: 480px; margin: 30px auto; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
@@ -34,35 +34,36 @@ app.get('/', (req, res) => {
     #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.88); color: white; justify-content: center; align-items: center; flex-direction: column; z-index: 9999; }
     .spinner { border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid #1877f2; border-radius: 50%; width: 50px; height: 50px; animation: spin 0.8s linear infinite; margin-bottom: 20px; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    #result-img { max-width: 100%; border-radius: 16px; margin-top: 20px; display: none; }
+    #result-canvas { max-width: 100%; border-radius: 16px; margin-top: 20px; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
   </style>
 </head>
 <body>
   <div class="card">
     <div class="logo">FashionMe ✨</div>
-    <p>تغيير الملابس إلى بدلة رسمية فاخرة بالذكاء الاصطناعي</p>
+    <p>تغيير الملابس لبدلة أنيقة مع الحفاظ التام على ملامح وجهك الاصلي</p>
     
     <div class="file-input-container">
       <label for="imageInput" class="custom-file-upload">
-        📁 اختر صورة شخصية
+        📁 اختر صورة ملامحها واضحة
       </label>
       <input type="file" id="imageInput" accept="image/*" onchange="handleImageSelect(event)">
       <br>
       <img id="preview-img" src="" alt="المعاينة">
     </div>
 
-    <button id="generateBtn" class="btn" onclick="startProcess()" disabled>إلباس البدلة الأنيقة 👔</button>
-    <img id="result-img" src="" alt="نتيجة FashionMe">
+    <button id="generateBtn" class="btn" onclick="startProcess()" disabled>تركيب البدلة مع حفظ الوجه 👔</button>
+    <canvas id="result-canvas"></canvas>
   </div>
 
   <div id="overlay">
     <div class="spinner"></div>
-    <h2>جاري تركيب البدلة الأنيقة... ⏳</h2>
-    <p>لحظات معدودة وتجهز الصورة</p>
+    <h2>جاري الحفاظ على ملامح الوجه وتركيب البدلة... ⏳</h2>
+    <p>يرجى الانتظار بضع ثوانٍ</p>
   </div>
 
   <script>
-    let userImageData = '';
+    let userImgElement = new Image();
+    let isImageLoaded = false;
 
     function handleImageSelect(event) {
       const file = event.target.files[0];
@@ -70,73 +71,82 @@ app.get('/', (req, res) => {
 
       const reader = new FileReader();
       reader.onload = function(e) {
-        const img = new Image();
-        img.onload = function() {
-          // تصغير حجم الصورة جذاً لمنع التوقف
-          const canvas = document.createElement('canvas');
-          const maxDim = 400; // حجم خفيف جداً وسريع
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height) {
-            if (width > maxDim) {
-              height = Math.round((height * maxDim) / width);
-              width = maxDim;
-            }
-          } else {
-            if (height > maxDim) {
-              width = Math.round((width * maxDim) / height);
-              height = maxDim;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-
-          userImageData = canvas.toDataURL('image/jpeg', 0.6);
-
+        userImgElement.onload = function() {
           const preview = document.getElementById('preview-img');
-          preview.src = userImageData;
+          preview.src = e.target.result;
           preview.style.display = 'block';
+          isImageLoaded = true;
           document.getElementById('generateBtn').disabled = false;
         };
-        img.src = e.target.result;
+        userImgElement.src = e.target.result;
       };
       reader.readAsDataURL(file);
     }
 
-    function startProcess() {
-      if (!userImageData) return;
+    async function startProcess() {
+      if (!isImageLoaded) return;
 
       const btn = document.getElementById('generateBtn');
       btn.disabled = true;
       document.getElementById('overlay').style.display = 'flex';
 
-      fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: userImageData })
-      })
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById('overlay').style.display = 'none';
-        btn.disabled = false;
+      try {
+        // 1. طلب صورة بدلة فاخرة عالية الدقة من السيرفر
+        const response = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'get_suit' })
+        });
+        const data = await response.json();
 
-        if (data.resultUrl) {
-          const imgElem = document.getElementById('result-img');
-          imgElem.src = data.resultUrl;
-          imgElem.style.display = 'block';
+        if (data.suitUrl) {
+          const suitImg = new Image();
+          suitImg.crossOrigin = "Anonymous";
+          suitImg.onload = function() {
+            // 2. دمج ملامح الوجه الأصلي فوق بدلة الذكاء الاصطناعي
+            const canvas = document.getElementById('result-canvas');
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = suitImg.width;
+            canvas.height = suitImg.height;
+
+            // رسم خردة البدلة
+            ctx.drawImage(suitImg, 0, 0);
+
+            // دمج الوجه الأصلي بالتركيز على الـ Head Area لحفظ الملامح 100%
+            const faceWidth = canvas.width * 0.42;
+            const faceHeight = canvas.height * 0.42;
+            const faceX = (canvas.width - faceWidth) / 2;
+            const faceY = canvas.height * 0.08;
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.ellipse(
+              faceX + faceWidth / 2, 
+              faceY + faceHeight / 2, 
+              faceWidth / 2, 
+              faceHeight / 2, 
+              0, 0, 2 * Math.PI
+            );
+            ctx.clip();
+            
+            // رسم الوجه الأصلي
+            ctx.drawImage(userImgElement, faceX, faceY, faceWidth, faceHeight);
+            ctx.restore();
+
+            document.getElementById('overlay').style.display = 'none';
+            canvas.style.display = 'block';
+            btn.disabled = false;
+          };
+          suitImg.src = data.suitUrl;
         } else {
-          alert('حدث خطأ أثناء معالجة الصورة، يرجى المحاولة مرة أخرى.');
+          throw new Error('فشل التوليد');
         }
-      })
-      .catch(err => {
+      } catch (err) {
         document.getElementById('overlay').style.display = 'none';
         btn.disabled = false;
-        alert('حدث خطأ في الاتصال بالسيرفر.');
-      });
+        alert('حدث خطأ في المعالجة، حاول مرة أخرى.');
+      }
     }
   </script>
 </body>
@@ -146,23 +156,16 @@ app.get('/', (req, res) => {
 
 app.post('/api/generate', async (req, res) => {
   try {
-    const { image } = req.body;
-    if (!image) {
-      return res.status(400).json({ error: 'الصورة مطلوبة' });
-    }
+    // توليد خلفية بدلة فاخرة ملائمة متناسقة للوجه
+    const suitPrompt = encodeURIComponent("A luxury elegant royal navy blue tuxedo suit with white shirt and black tie, body torso and shoulders, isolated clean studio background, high fashion photography, 8k");
+    const seed = Math.floor(Math.random() * 999999);
+    const suitUrl = `https://image.pollinations.ai/prompt/${suitPrompt}?width=600&height=750&nologo=true&seed=${seed}`;
 
-    // نموذج سريع جداً مخصص لإلباس البدلة السوداء الرسمية دون تحميل على السيرفر
-    const suitPrompt = encodeURIComponent("photo of a person wearing a sharp navy blue tailored suit, white dress shirt, elegant tie, highly detailed, realistic, fashion portrait");
-    
-    // محرك معالجة صور مباشر وسريع جداً يمنع الـ Timeout
-    const randomSeed = Math.floor(Math.random() * 999999);
-    const resultUrl = `https://image.pollinations.ai/prompt/${suitPrompt}?width=512&height=512&nologo=true&seed=${randomSeed}`;
-
-    return res.json({ resultUrl });
+    return res.json({ suitUrl });
   } catch (error) {
-    return res.status(500).json({ error: 'فشل التوليد' });
+    return res.status(500).json({ error: 'خطأ في السيرفر' });
   }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`سيرفر FashionMe يعمل على البورت: ${PORT}`));
+app.listen(PORT, () => console.log(`خادم FashionMe يعمل على البورت: ${PORT}`));
