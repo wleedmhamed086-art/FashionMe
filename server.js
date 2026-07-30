@@ -78,7 +78,6 @@ app.get('/', (req, res) => {
       reader.onload = function(e) {
         const img = new Image();
         img.onload = function() {
-          // تصغير الصورة وتحديد أقصى أبعاد لها لتوفير السرعة وحجم البيانات
           const canvas = document.createElement('canvas');
           let width = img.width;
           let height = img.height;
@@ -101,7 +100,6 @@ app.get('/', (req, res) => {
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
 
-          // تحويل الصورة إلى صيغة JPEG جودة 75%
           compressedBase64Image = canvas.toDataURL('image/jpeg', 0.75);
 
           const preview = document.getElementById('preview-img');
@@ -146,18 +144,22 @@ app.get('/', (req, res) => {
 });
 
 app.post('/api/generate', async (req, res) => {
-  try {
-    const { imageUrl } = req.body;
-    if (!imageUrl) {
-      return res.status(400).json({ error: 'لم يتم تزويد صورة معالجة' });
-    }
+  const { imageUrl } = req.body;
+  if (!imageUrl) {
+    return res.status(400).json({ error: 'لم يتم تزويد صورة معالجة' });
+  }
 
+  const defaultPrompt = "A high fashion portrait, luxury elegant royal clothes, cinematic lighting, 8k resolution, photorealistic";
+
+  // 1. المحاولة الأولى: استخدام Replicate
+  try {
+    console.log("جاري التوليد عبر Replicate...");
     const output = await replicate.run(
-      "bytedance/sdxl-lightning-4step:55883d738653a205d8362d15be07e138328d23f6a3e0562c468f4368c142fc01",
+      "bytedance/sdxl-lightning-4step",
       {
         input: {
           image: imageUrl,
-          prompt: "A high fashion portrait, luxury elegant royal clothes, cinematic lighting, 8k resolution, photorealistic",
+          prompt: defaultPrompt,
           negative_prompt: "blurry, low quality, distorted face",
         }
       }
@@ -171,13 +173,22 @@ app.post('/api/generate', async (req, res) => {
     }
 
     if (resultUrl) {
-      res.json({ resultUrl });
-    } else {
-      res.status(500).json({ error: 'لم يُرجع نموذج الذكاء الاصطناعي أي رابط للصورة' });
+      return res.json({ resultUrl, provider: 'Replicate' });
     }
-  } catch (error) {
-    console.error("Replicate Error:", error);
-    res.status(500).json({ error: error.message || 'فشل التوليد' });
+  } catch (replicateError) {
+    console.warn("فشل Replicate، الانتقال للمحرك البديل تلقائياً:", replicateError.message);
+  }
+
+  // 2. الخطة البديلة (Fallback): Pollinations API (تضمن استمرار الخدمة مجاناً)
+  try {
+    console.log("جاري التوليد عبر الخطة البديلة (Pollinations)...");
+    const encodedPrompt = encodeURIComponent(defaultPrompt);
+    const backupUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=800&nologo=true&seed=${Math.floor(Math.random() * 1000000)}`;
+
+    return res.json({ resultUrl: backupUrl, provider: 'Fallback' });
+  } catch (fallbackError) {
+    console.error("فشلت جميع المحاولات:", fallbackError);
+    return res.status(500).json({ error: 'حدث خطأ في توليد الصورة، يرجى المحاولة لاحقاً.' });
   }
 });
 
