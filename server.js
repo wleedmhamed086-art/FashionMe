@@ -18,6 +18,7 @@ app.get('/', (req, res) => {
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+<script src="https://pl30602609.effectivecpmnetwork.com/df/38/0e/df380ee9581ff783e61cae26037764b1.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FashionMe - أزياء الذكاء الاصطناعي</title>
