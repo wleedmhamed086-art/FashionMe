@@ -45,7 +45,7 @@ app.get('/', (req, res) => {
 <body>
   <div class="card">
     <div class="logo">FashionMe ✨</div>
-    <p>اختر صورتك واكتشف مظهرك الفاخر بالذكاء الاصطناعي بنقرة واحدة!</p>
+    <p>اختر صورتك واحصل على إطلالة ببدلة أنيقة بالذكاء الاصطناعي بنقرة واحدة!</p>
     
     <div class="file-input-container">
       <label for="imageInput" class="custom-file-upload">
@@ -56,14 +56,14 @@ app.get('/', (req, res) => {
       <img id="preview-img" src="" alt="المعاينة">
     </div>
 
-    <button id="generateBtn" class="btn" onclick="startProcess()" disabled>تصميم الإطلالة الفاخرة 🚀</button>
+    <button id="generateBtn" class="btn" onclick="startProcess()" disabled>تجربة البدلة الأنيقة 👔</button>
     <img id="result-img" src="" alt="نتيجة FashionMe">
   </div>
 
   <div id="overlay">
     <div class="spinner"></div>
-    <h2>FashionMe يُصمم إطلالتك الآن... ⏳</h2>
-    <p>يرجى الانتظار قليلاً أثناء تجهيز الزي الملكي الخاص بك</p>
+    <h2>FashionMe يُلْبسُك البدلة الآن... ⏳</h2>
+    <p>يرجى الانتظار قليلاً أثناء تجهيز البدلة الأنيقة</p>
   </div>
 
   <script>
@@ -80,8 +80,7 @@ app.get('/', (req, res) => {
           const canvas = document.createElement('canvas');
           let width = img.width;
           let height = img.height;
-          // تقليل الأبعاد إلى 600px لتقليل حجم الطلب وتجنب قيود Vercel
-          const maxDim = 600;
+          const maxDim = 500;
 
           if (width > height) {
             if (width > maxDim) {
@@ -100,8 +99,7 @@ app.get('/', (req, res) => {
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
 
-          // زيادة الضغط والجودة لـ 0.6 لتسريع نقل البيانات
-          compressedBase64Image = canvas.toDataURL('image/jpeg', 0.60);
+          compressedBase64Image = canvas.toDataURL('image/jpeg', 0.50);
 
           const preview = document.getElementById('preview-img');
           preview.src = compressedBase64Image;
@@ -117,7 +115,7 @@ app.get('/', (req, res) => {
       if (!compressedBase64Image) return;
 
       const btn = document.getElementById('generateBtn');
-      btn.disabled = true; // تعطيل الزر مؤقتاً لمنع التكرار المزدوج
+      btn.disabled = true;
       document.getElementById('overlay').style.display = 'flex';
 
       fetch('/api/generate', {
@@ -128,11 +126,11 @@ app.get('/', (req, res) => {
       .then(res => res.json())
       .then(data => {
         document.getElementById('overlay').style.display = 'none';
-        btn.disabled = false; // إعادة تفعيل الزر للتحويلات القادمة
+        btn.disabled = false;
 
         if (data.resultUrl) {
           const imgElem = document.getElementById('result-img');
-          imgElem.src = data.resultUrl;
+          imgElem.src = data.resultUrl + '&t=' + new Date().getTime();
           imgElem.style.display = 'block';
         } else {
           alert('حدث خطأ: ' + (data.error || 'فشل معالجة الصورة'));
@@ -140,8 +138,8 @@ app.get('/', (req, res) => {
       })
       .catch(err => {
         document.getElementById('overlay').style.display = 'none';
-        btn.disabled = false; // إعادة تفعيل الزر في حالة الخلل
-        alert('حدث خطأ في الاتصال بالسيرفر، حاول مرة أخرى.');
+        btn.disabled = false;
+        alert('حدث خطأ أثناء المعالجة، حاول مرة أخرى.');
       });
     }
   </script>
@@ -150,27 +148,38 @@ app.get('/', (req, res) => {
   `);
 });
 
+const runWithTimeout = (promise, ms) => {
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('Replicate Timeout')), ms)
+  );
+  return Promise.race([promise, timeout]);
+};
+
 app.post('/api/generate', async (req, res) => {
   const { imageUrl } = req.body;
   if (!imageUrl) {
     return res.status(400).json({ error: 'لم يتم تزويد صورة معالجة' });
   }
 
-  const defaultPrompt = "A high fashion portrait, luxury elegant royal clothes, cinematic lighting, 8k resolution, photorealistic";
+  // الوصف المخصص لتركيز التوليد على البدلة الفاخرة فقط
+  const defaultPrompt = "A handsome person wearing a tailored luxury suit, elegant black tuxedo, dark blue blazer, formal necktie, high fashion, sharp focus, photo realistic, 8k";
+  const negativePrompt = "casual clothes, t-shirt, hoodie, distorted face, blurry, low quality, bad anatomy";
 
-  // 1. المحاولة الأولى: استخدام Replicate
+  // 1. Replicate
   try {
-    console.log("جاري التوليد عبر Replicate...");
-    const output = await replicate.run(
+    console.log("جاري التوليد عبر Replicate (بدلة أنيقة)...");
+    const replicatePromise = replicate.run(
       "bytedance/sdxl-lightning-4step",
       {
         input: {
           image: imageUrl,
           prompt: defaultPrompt,
-          negative_prompt: "blurry, low quality, distorted face",
+          negative_prompt: negativePrompt,
         }
       }
     );
+
+    const output = await runWithTimeout(replicatePromise, 5000);
 
     let resultUrl = '';
     if (Array.isArray(output) && output.length > 0) {
@@ -183,19 +192,19 @@ app.post('/api/generate', async (req, res) => {
       return res.json({ resultUrl, provider: 'Replicate' });
     }
   } catch (replicateError) {
-    console.warn("فشل Replicate، الانتقال للمحرك البديل تلقائياً:", replicateError.message);
+    console.warn("استغرق Replicate وقتاً طويلاً، التبديل للبديل الفوري:", replicateError.message);
   }
 
-  // 2. الخطة البديلة (Fallback): Pollinations API (تضمن استمرار الخدمة مجاناً ورقم عشوائي تجنباً للـ Caching)
+  // 2. المحرك البديل
   try {
-    console.log("جاري التوليد عبر الخطة البديلة (Pollinations)...");
+    console.log("جاري التوليد عبر المحرك البديل (بدلة أنيقة)...");
     const encodedPrompt = encodeURIComponent(defaultPrompt);
-    const backupUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=800&nologo=true&seed=${Math.floor(Math.random() * 10000000)}`;
+    const randomSeed = Math.floor(Math.random() * 9999999);
+    const backupUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=800&nologo=true&seed=${randomSeed}`;
 
     return res.json({ resultUrl: backupUrl, provider: 'Fallback' });
   } catch (fallbackError) {
-    console.error("فشلت جميع المحاولات:", fallbackError);
-    return res.status(500).json({ error: 'حدث خطأ في توليد الصورة، يرجى المحاولة لاحقاً.' });
+    return res.status(500).json({ error: 'تعذر التوليد، يرجى المحاولة لاحقاً.' });
   }
 });
 
