@@ -5,7 +5,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const app = express();
-// زيادة حد حجم البيانات المستلمة لدعم رفع الصور مباشرة
+// دعم استقبال بيانات الصور المكبوسة
 app.use(express.json({ limit: '10mb' }));
 
 const replicate = new Replicate({
@@ -31,7 +31,7 @@ app.get('/', (req, res) => {
     input[type="file"] { display: none; }
     .custom-file-upload { display: inline-block; padding: 12px 24px; cursor: pointer; background: #e4e6eb; border-radius: 10px; font-weight: bold; color: #050505; transition: 0.2s; margin-bottom: 10px; }
     .custom-file-upload:hover { background: #d8dadf; }
-    #preview-img { max-width: 150px; max-height: 150px; border-radius: 50%; margin: 15px auto; display: none; object-fit: cover; border: 3px solid #1877f2; }
+    #preview-img { max-width: 160px; max-height: 160px; border-radius: 12px; margin: 15px auto; display: none; object-fit: cover; border: 3px solid #1877f2; }
 
     .btn { background: linear-gradient(45deg, #1877f2, #0056b3); color: white; padding: 15px 30px; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; width: 100%; box-shadow: 0 4px 12px rgba(24, 119, 242, 0.3); }
     .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(24, 119, 242, 0.4); }
@@ -68,31 +68,60 @@ app.get('/', (req, res) => {
   </div>
 
   <script>
-    let selectedBase64Image = '';
+    let compressedBase64Image = '';
 
     function handleImageSelect(event) {
       const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          selectedBase64Image = e.target.result;
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          // تصغير الصورة وتحديد أقصى أبعاد لها لتوفير السرعة وحجم البيانات
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const maxDim = 800;
+
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // تحويل الصورة إلى صيغة JPEG جودة 75%
+          compressedBase64Image = canvas.toDataURL('image/jpeg', 0.75);
+
           const preview = document.getElementById('preview-img');
-          preview.src = selectedBase64Image;
+          preview.src = compressedBase64Image;
           preview.style.display = 'block';
           document.getElementById('generateBtn').disabled = false;
         };
-        reader.readAsDataURL(file);
-      }
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
     }
 
     function startProcess() {
-      if (!selectedBase64Image) return;
+      if (!compressedBase64Image) return;
 
       document.getElementById('overlay').style.display = 'flex';
       fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageUrl: selectedBase64Image })
+        body: JSON.stringify({ imageUrl: compressedBase64Image })
       })
       .then(res => res.json())
       .then(data => {
@@ -102,12 +131,12 @@ app.get('/', (req, res) => {
           imgElem.src = data.resultUrl;
           imgElem.style.display = 'block';
         } else {
-          alert('حدث خطأ أثناء معالجة الصورة، حاول مجدداً.');
+          alert('حدث خطأ: ' + (data.error || 'فشل معالجة الصورة'));
         }
       })
       .catch(err => {
         document.getElementById('overlay').style.display = 'none';
-        alert('حدث خطأ في الاتصال، حاول مرة أخرى.');
+        alert('حدث خطأ في الاتصال بالسيرفر، حاول مرة أخرى.');
       });
     }
   </script>
@@ -119,6 +148,10 @@ app.get('/', (req, res) => {
 app.post('/api/generate', async (req, res) => {
   try {
     const { imageUrl } = req.body;
+    if (!imageUrl) {
+      return res.status(400).json({ error: 'لم يتم تزويد صورة معالجة' });
+    }
+
     const output = await replicate.run(
       "bytedance/sdxl-lightning-4step:55883d738653a205d8362d15be07e138328d23f6a3e0562c468f4368c142fc01",
       {
@@ -129,9 +162,22 @@ app.post('/api/generate', async (req, res) => {
         }
       }
     );
-    res.json({ resultUrl: output[0] });
+
+    let resultUrl = '';
+    if (Array.isArray(output) && output.length > 0) {
+      resultUrl = typeof output[0] === 'string' ? output[0] : output[0].toString();
+    } else if (typeof output === 'string') {
+      resultUrl = output;
+    }
+
+    if (resultUrl) {
+      res.json({ resultUrl });
+    } else {
+      res.status(500).json({ error: 'لم يُرجع نموذج الذكاء الاصطناعي أي رابط للصورة' });
+    }
   } catch (error) {
-    res.status(500).json({ error: 'فشل التوليد' });
+    console.error("Replicate Error:", error);
+    res.status(500).json({ error: error.message || 'فشل التوليد' });
   }
 });
 
