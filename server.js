@@ -5,7 +5,6 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const app = express();
-// دعم استقبال بيانات الصور المكبوسة
 app.use(express.json({ limit: '10mb' }));
 
 const replicate = new Replicate({
@@ -81,7 +80,8 @@ app.get('/', (req, res) => {
           const canvas = document.createElement('canvas');
           let width = img.width;
           let height = img.height;
-          const maxDim = 800;
+          // تقليل الأبعاد إلى 600px لتقليل حجم الطلب وتجنب قيود Vercel
+          const maxDim = 600;
 
           if (width > height) {
             if (width > maxDim) {
@@ -100,7 +100,8 @@ app.get('/', (req, res) => {
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
 
-          compressedBase64Image = canvas.toDataURL('image/jpeg', 0.75);
+          // زيادة الضغط والجودة لـ 0.6 لتسريع نقل البيانات
+          compressedBase64Image = canvas.toDataURL('image/jpeg', 0.60);
 
           const preview = document.getElementById('preview-img');
           preview.src = compressedBase64Image;
@@ -115,7 +116,10 @@ app.get('/', (req, res) => {
     function startProcess() {
       if (!compressedBase64Image) return;
 
+      const btn = document.getElementById('generateBtn');
+      btn.disabled = true; // تعطيل الزر مؤقتاً لمنع التكرار المزدوج
       document.getElementById('overlay').style.display = 'flex';
+
       fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -124,6 +128,8 @@ app.get('/', (req, res) => {
       .then(res => res.json())
       .then(data => {
         document.getElementById('overlay').style.display = 'none';
+        btn.disabled = false; // إعادة تفعيل الزر للتحويلات القادمة
+
         if (data.resultUrl) {
           const imgElem = document.getElementById('result-img');
           imgElem.src = data.resultUrl;
@@ -134,6 +140,7 @@ app.get('/', (req, res) => {
       })
       .catch(err => {
         document.getElementById('overlay').style.display = 'none';
+        btn.disabled = false; // إعادة تفعيل الزر في حالة الخلل
         alert('حدث خطأ في الاتصال بالسيرفر، حاول مرة أخرى.');
       });
     }
@@ -179,11 +186,11 @@ app.post('/api/generate', async (req, res) => {
     console.warn("فشل Replicate، الانتقال للمحرك البديل تلقائياً:", replicateError.message);
   }
 
-  // 2. الخطة البديلة (Fallback): Pollinations API (تضمن استمرار الخدمة مجاناً)
+  // 2. الخطة البديلة (Fallback): Pollinations API (تضمن استمرار الخدمة مجاناً ورقم عشوائي تجنباً للـ Caching)
   try {
     console.log("جاري التوليد عبر الخطة البديلة (Pollinations)...");
     const encodedPrompt = encodeURIComponent(defaultPrompt);
-    const backupUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=800&nologo=true&seed=${Math.floor(Math.random() * 1000000)}`;
+    const backupUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=800&nologo=true&seed=${Math.floor(Math.random() * 10000000)}`;
 
     return res.json({ resultUrl: backupUrl, provider: 'Fallback' });
   } catch (fallbackError) {
