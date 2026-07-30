@@ -129,5 +129,15 @@ app.post('/api/generate', async (req, res) => {
   }
 });
 
+// --- مسارات سياسة الخصوصية وحذف البيانات التي تطلبها Meta ---
+
+app.get('/privacy-policy', (req, res) => {
+  res.send('<h1>سياسة الخصوصية - FashionMe</h1><p>نحن نحترم خصوصيتك ولا نطلب سوى بيانات ملفك الشخصي الأساسية لتسجيل الدخول.</p>');
+});
+
+app.get('/data-deletion', (req, res) => {
+  res.send('<h1>حذف البيانات - FashionMe</h1><p>لحذف بياناتك، يرجى التواصل معنا عبر البريد الإلكتروني أو إزالة التطبيق من إعدادات حسابك على فيسبوك.</p>');
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`خادم FashionMe يعمل على البورت: ${PORT}`));
